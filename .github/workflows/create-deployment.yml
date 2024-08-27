@@ -1,26 +1,24 @@
-  name: Deploy to Azure
-  on:
-    push:
-      branches:
-        - main
+name: Create Azure resources
+on: [workflow_dispatch]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
 
-  jobs:
-    deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v3
+      # Checkout code
+      - uses: actions/checkout@main
 
-        - name: Log in to Azure
-          uses: azure/login@v1
-          with:
-            creds: ${{ secrets.AZURE_CREDENTIALS }}
+      # Log into Azure
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-        - name: Build and deploy Container App
-          uses: azure/container-apps-deploy-action@v1
-          with:
-            appSourcePath: ${{ github.workspace }}
-            acrName: ${{ vars.AZURE_PREFIX }}acr
-            resourceGroup: ${{ vars.AZURE_RG }}
-            containerAppName: ${{ vars.AZURE_PREFIX }}containerapp
-            containerAppEnvironment: ${{ vars.AZURE_PREFIX }}containerappenvironment
+      # Deploy Bicep file
+      - name: create resources
+        uses: azure/arm-deploy@v1
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
+          resourceGroupName: ${{ vars.AZURE_RG }}
+          template: ${{ github.workspace }}/config/main.bicep
+          parameters: 'namePrefix=${{ vars.AZURE_PREFIX }}'
+          failOnStdErr: false
